@@ -1,3 +1,6 @@
+from functools import lru_cache
+
+
 def mex(reachable: list[int]) -> int:
     """
     Compute the minimum excludant (mex) of a set of numbers.
@@ -11,6 +14,7 @@ def mex(reachable: list[int]) -> int:
     return mex_value
 
 
+@lru_cache(None)
 def compute_sprague_grundy(
         game_type: str,
         S: list[int],
@@ -51,69 +55,32 @@ def compute_sprague_grundy(
     return grundy
 
 
-def find_period(grundy_values: list[int]) -> tuple[int, int | None]:
+@lru_cache(None)
+def find_pre_and_period_length(sequence: list[int]) -> tuple[int, int]:
     """
-    Find the period and pre-period of the Sprague-Grundy values.
+    Finds the length of the pre-sequence (pre-period) and the period in a seq.
 
-    :param grundy_values: list of integers representing the Sprague-Grundy vals
-    :return: tuple (pre_period, period) where:
-             - pre_period is the length before periodicity starts
-             - period is the length of the repeating cycle
+    Args:
+        sequence (list[int]): List of integers to analyze.
+
+    Returns:
+        tuple[int, int]: Length of the pre-sequence and length of the
+            periodic sequence.
     """
-    n = len(grundy_values)
+    n = len(sequence)
 
-    for pre_period in range(n):
-        for period in range(1, n - pre_period):
+    for pre_length in range(n):
+        for period_length in range(1, (n - pre_length) // 2 + 1):
             is_periodic = True
-            for i in range(pre_period, n - period):
-                if grundy_values[i] != grundy_values[i + period]:
+            for i in range(pre_length, n):
+                if (
+                    (i + period_length < n)
+                    and sequence[i] != sequence[i + period_length]
+                ):
                     is_periodic = False
                     break
 
             if is_periodic:
-                return pre_period, period
+                return pre_length, period_length
 
-    return len(grundy_values), None
-
-
-def analyze_periodicity(
-        grundy_values: list[int]
-        ) -> tuple[int, int | None, int | None]:
-    """
-    Analyze the periodicity and pre-period of Sprague-Grundy values.
-
-    :param grundy_values: list of Sprague-Grundy values
-    :return: tuple (pre_period, period, saltus), where:
-             - pre_period is the length before periodicity starts
-             - period is the length of the repeating cycle
-             - saltus is the arithmetic difference in the periodic sequence
-                (if applicable)
-    """
-    n = len(grundy_values)
-
-    for pre_period in range(n):
-        for period in range(1, n - pre_period):
-            if (
-                grundy_values[pre_period:pre_period + period]
-                == grundy_values[pre_period + period:pre_period + 2 * period]
-            ):
-                saltus = None
-                is_arithmetic = True
-
-                for i in range(pre_period, n - period):
-                    if (
-                        (grundy_values[i] + grundy_values[i + period])
-                        != grundy_values[i]
-                    ):
-                        is_arithmetic = False
-                        break
-
-                if is_arithmetic:
-                    saltus = (
-                        grundy_values[pre_period + period]
-                        - grundy_values[pre_period]
-                    )
-
-                return pre_period, period, saltus
-
-    return len(grundy_values), None, None
+    return n, 0
